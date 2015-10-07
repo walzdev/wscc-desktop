@@ -73,6 +73,23 @@ apt-get install owncloud-client -y
 
 
 # -------------------------------------------------- UNINSTALL APPLICATIONS ----------------------------------------------------
+TODO: Test following to uninstall
+#	transmission-gtk
+#	unity-webapps-common
+#	gnome-user-share
+#	gnome-bluetooth
+#	webaccounts-extension-common
+#	unity-control-center
+#	modemmanager
+#	ubuntu-desktop
+#	indicator-bluetooth
+#	xul-ext-webaccounts
+#	unity-control-center-signon
+#	?? landscape-client-ui-install
+#	?? oxideqt-codecs
+
+
+
 # Einzelanwendungen
 #	brasero			= CD/DVD Brennprogramm				# Auto Installed Packages (AIP): brasero-cdrkit
 #	cheese			= Webcam-Automat				# AIP: gnome-video-effects
