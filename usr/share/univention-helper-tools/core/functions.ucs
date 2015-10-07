@@ -1,0 +1,228 @@
+#!/bin/bash
+
+# checks() {
+# 	#source "${UCSHTCORE}/checks.ucs"
+# 
+# 	## Check if mountpoints exists, if not -> create based on array
+# 	for i in "${NFSMOUNTDIRS[@]}"
+# 	do
+# 		mkdir -p ${MNT}/$i
+# 	done
+# 
+# 	echo ".........................base checks successfully done!";
+# 	echo "";
+# }
+
+
+revokewa() {
+	#Revoke Write Access
+	chmod -w $1
+}
+
+
+grantwa() {
+	#Grant Write Access
+	chmod +w $1
+}
+
+
+uhtsetup() {
+	#Symlink uht.sh for global access
+	ln -s /usr/share/univention-helper-tools/uht.sh /bin/uht
+
+	echo "";
+	echo "Now you can use it as follows:";
+	echo "uht -v                          (To show current version)";
+	echo "uht -m                          (To mount folder as set in settings.conf)";
+	echo "";
+}
+
+
+uhtmount() {
+	# Function to mount nfs shares with additional checks
+	#####################################################
+
+	NFSSOURCE="$1";
+	NFSMOUNTDIR="$2";
+
+	## Check if folder exists, then unmount, else create
+	if [ -d ${NFSMOUNTDIR} ]; then
+		## Unmount if any mountpoint exists on dir
+		if mountpoint -q ${NFSMOUNTDIR}; then
+			umount ${NFSMOUNTDIR}
+		fi
+	else
+		mkdir -p ${NFSMOUNTDIR}
+	fi
+
+	## Mount new
+	echo "Mounting ${NFSSOURCE} in directory ${NFSMOUNTDIR}..."
+	mount -t nfs ${NFSSOURCE} ${NFSMOUNTDIR}
+
+	## Check if mount was successfull
+	if [ $? -ne 0 ]
+		then
+			echo "...mount source failed ${NFSSOURCE} (Maybe directory doesn't exist)"
+		else
+			echo "...mointing successfull"
+
+			if [ -d ${BACKUPMASTER} ]; then
+				revokewa ${BACKUPMASTER}
+				echo "";
+				echo "For security reasons, write access has been revoked for ${BACKUPMASTER}";
+			fi
+	fi
+	echo "";
+}
+
+
+uhtbackup() {
+	# Script fuer inkrementelles Backup mit 30 taegigem Vollbackup
+	##############################################################
+	UHT_BACKUP_MAIL_ENABLED=$1		# Mail features enabled (1=Yes, 0=No)
+
+	echo "Mail features enabled: ${UHT_BACKUP_MAIL_ENABLED}";
+
+	grantwa ${BACKUPMASTER}
+
+	echo "Write access has been granted for ${BACKUPMASTER}";
+
+	## AM BESTEN: Backup Lokal vorbereiten und dann erst übertragen!!!!!! angepasst und durch vorherige überprüfung des mountpoints !!!!
+
+	### Wechsel in / damit die Pfade stimmen
+	cd /
+
+	### Backupverzeichnis anlegen
+	mkdir -p ${BACKUPDIR}
+
+	### Test ob Backupverzeichnis existiert und Mail an Admin bei fehlschlagen ##
+	if [ ! -d "${BACKUPDIR}" ]; then
+#		mail -s "Backupverzeichnis nicht vorhanden!" root <<EOM
+#		Hallo Admin,
+#		das Backup am ${DATE} konnte nicht erstellt werden. Das Verzeichnis ${BACKUPDIR} wurde nicht gefunden und konnte auch nicht angelegt werden.
+#		Mit freundlichem Gruss Backupscript
+#		EOM
+
+#		mail -s "${MAIL_BACKUPDIR_CANTCREATE_SUBJECT}" root "${MAIL_BACKUPDIR_CANTCREATE_BODY}"
+
+		echo "Backupverzeichnis nicht vorhanden!"
+		echo "Hallo Admin,"
+		echo "das Backup am ${DATE} konnte nicht erstellt werden. Das Verzeichnis ${BACKUPDIR} wurde nicht gefunden und konnte auch nicht angelegt werden."
+		echo "Mit freundlichem Gruss Backupscript"
+
+		. exit 1
+	fi
+
+	### Alle Variablen einlesen und letzte Backupdateinummer herausfinden ##
+	set -- ${BACKUPDIR}/backup-???.tgz
+	lastname=${!#}
+	backupnr=${lastname##*backup-}
+	backupnr=${backupnr%%.*}
+	backupnr=${backupnr//\?/0}
+	backupnr=$[10#${backupnr}]
+
+	### Backupdateinummer automatisch um +1 bis maximal 30 erhoehen ##
+	if [ "$[backupnr++]" -ge 30 ]; then
+		mkdir -p ${ARCHIVEDIR}/${DATE}-${TIME}
+
+		### Test ob Rotateverzeichnis existiert und Mail an Admin bei fehlschlagen ##
+		if [ ! -d "${ARCHIVEDIR}/${DATE}-${TIME}" ]; then
+#			mail -s "Rotateverzeichnis nicht vorhanden!" root <<EOM
+#				Hallo Admin,
+#				die alten Backups konnten am ${DATE} nicht verschoben werden. Das Verzeichnis ${ARCHIVEDIR} wurde nicht gefunden und konnte auch nicht angelegt werden.
+#				Mit freundlichem Gruss Backupscript
+#			EOM
+
+			echo "Rotateverzeichnis nicht vorhanden!"
+			echo "	Hallo Admin,"
+			echo "	die alten Backups konnten am ${DATE} nicht verschoben werden. Das Verzeichnis ${ARCHIVEDIR} wurde nicht gefunden und konnte auch nicht angelegt werden."
+			echo "	Mit freundlichem Gruss Backupscript"
+
+			exit 1
+		else
+			mv ${BACKUPDIR}/* ${ARCHIVEDIR}/${DATE}-${TIME} 
+		fi
+
+		### Abfragen ob das Backupverschieben erfolgreich war ##
+		if [ $? -ne 0 ]; then
+#			mail -s "Backupverschieben fehlerhaft!" root <<EOM
+#				Hallo Admin,
+#				die alten Backups konnte am ${DATE} nicht verschoben werden.
+#				Mit freundlichem Gruss Backupscript
+#			EOM
+
+			echo "Backupverschieben fehlerhaft!"
+			echo "Hallo Admin,"
+			echo "die alten Backups konnte am ${DATE} nicht verschoben werden."
+			echo "Mit freundlichem Gruss Backupscript"
+
+	 		exit 1
+		else
+#			mail -s "Backupverschieben erfolgreich" root <<EOM
+#				Hallo Admin,
+#				die alten Backups wurde am ${DATE} erfolgreich nach ${ARCHIVEDIR}/${DATE}-${TIME} verschoben.
+#				Mit freundlichem Gruss Backupscript
+#			EOM
+
+			echo "Backupverschieben erfolgreich"
+			echo "Hallo Admin,"
+			echo "die alten Backups wurde am ${DATE} erfolgreich nach ${ARCHIVEDIR}/${DATE}-${TIME} verschoben."
+			echo "Mit freundlichem Gruss Backupscript"
+
+			### die Backupnummer wieder auf 1 stellen ##
+			backupnr=1 
+		fi 
+	fi
+
+	backupnr=000${backupnr}
+	backupnr=${backupnr: -3}
+	filename=backup-${backupnr}.tgz
+
+	### Nun wird das eigentliche Backup ausgefuehrt ##
+	tar -cpzf ${BACKUPDIR}/${filename} -g ${BACKUPDIR}/${TIMESTAMP} ${SOURCE} ${EXCLUDE}
+
+
+
+	## Backup lokal anfertigen
+	# tar -cpzf "/tmp/${filename}" -g "/tmp/${TIMESTAMP}" ${SOURCE} ${EXCLUDE}
+
+	## Backup und Timespamp ins Zielverzeichniss verschieben
+	# mv "/tmp/${filename}" ${BACKUPDIR}/${filename}
+	# mv "/tmp/${TIMESTAMP}" ${BACKUPDIR}/${TIMESTAMP}
+
+
+
+	### Abfragen ob das Backup erfolgreich war ##
+	if [ $? -ne 0 ]; then
+#		mail -s "Backup (${SOURCE}) war fehlerhaft!" root <<EOM
+#			Hallo Admin,
+#			das Backup ${filename} am ${DATE} wurde mit Fehler(n) beendet.
+#			Mit freundlichem Gruss Backupscript
+#		EOM
+
+		echo "Backup (${SOURCE}) war fehlerhaft!"
+		echo "Hallo Admin,"
+		echo "das Backup ${filename} am ${DATE} wurde mit Fehler(n) beendet."
+		echo "Mit freundlichem Gruss Backupscript"
+	else
+#		sendmail -s "Backup (${SOURCE}) war erfolgreich" root <<EOM
+#			Hallo Admin,
+#			das Backup ${filename} am ${DATE} wurde erfolgreich beendet.
+#			Mit freundlichem Gruss Backupscript
+#		EOM
+
+		echo "Backup (${SOURCE}) war erfolgreich"
+		echo "Hallo Admin,"
+		echo "das Backup ${filename} am ${DATE} wurde erfolgreich beendet."
+		echo "Mit freundlichem Gruss Backupscript"
+
+		if [ -d ${BACKUPMASTER} ]; then
+			revokewa ${BACKUPMASTER}
+			echo "";
+			echo "For security reasons, write access has been revoked for ${BACKUPMASTER}";
+		fi
+	fi
+}
+
+# recovery() {
+# }
