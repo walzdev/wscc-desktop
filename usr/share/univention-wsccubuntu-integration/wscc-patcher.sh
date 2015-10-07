@@ -2,7 +2,7 @@
 
 echo "##########################################################"
 echo "#                                                        #"
-echo "# Welcome to the WALZ.systems Corporate Client Installer #"
+echo -e "#  \e[96mWelcome to the WALZ.systems Corporate Client Patcher\033[0m  #"
 echo "# ------------------------------------------------------ #"
 echo "#                                                        #"
 echo "# This will install the WSCC - OS Patch on a clean       #"
