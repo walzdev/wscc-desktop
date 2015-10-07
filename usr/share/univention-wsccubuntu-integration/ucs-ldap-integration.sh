@@ -187,4 +187,6 @@ __EOF__
 
 
 
-echo -e "\e[38;5;87m...successfully LDAP integrategration in UCS DC Master\e[0m"
+echo -e "\e[38;5;87m...successfully installed LDAP integrategration to UCS DC Master\e[0m"
+
+shutdown -r now
