@@ -85,7 +85,6 @@ TODO: Test following to uninstall
 #	indicator-bluetooth
 #	xul-ext-webaccounts
 #	unity-control-center-signon
-#	?? landscape-client-ui-install
 #	?? oxideqt-codecs
 
 
@@ -95,6 +94,11 @@ TODO: Test following to uninstall
 #	cheese			= Webcam-Automat				# AIP: gnome-video-effects
 #	xul-ext-ubufox		= Ubuntu Änderungserweiterung für Firefox	# AIP: N/A
 #	unity-scope-gdrive	= Google Drive Integration			# AIP: N/A
+echo ""
+echo ""
+echo -e "\e[38;5;170mUninstall landscape-client-ui-install\e[0m"
+apt-get purge -y landscape-client-ui-install
+
 echo ""
 echo ""
 echo -e "\e[38;5;170mUninstall brasero\e[0m"

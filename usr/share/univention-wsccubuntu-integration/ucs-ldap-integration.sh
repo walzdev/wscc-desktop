@@ -27,8 +27,7 @@ fi
 export MASTER_IP=$ipucsmaster
 
 mkdir /etc/univention
-ssh root@${MASTER_IP} ucr shell |
- grep -v ^hostname= >/etc/univention/ucr_master
+ssh root@${MASTER_IP} ucr shell | grep -v ^hostname= >/etc/univention/ucr_master
 echo "master_ip=${MASTER_IP}" >>/etc/univention/ucr_master
 chmod 660 /etc/univention/ucr_master
 . /etc/univention/ucr_master
@@ -42,8 +41,7 @@ echo "${MASTER_IP} ${ldap_master}" >>/etc/hosts
 
 # Download the SSL certificate
 mkdir -p /etc/univention/ssl/ucsCA/
-wget -O /etc/univention/ssl/ucsCA/CAcert.pem \
-    http://${ldap_master}/ucs-root-ca.crt
+wget -O /etc/univention/ssl/ucsCA/CAcert.pem http://${ldap_master}/ucs-root-ca.crt
 
 # Create an account and save the password
 password="$(tr -dc A-Za-z0-9_ </dev/urandom | head -c20)"
